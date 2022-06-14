@@ -35,6 +35,11 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
+fn print_toio_num(toio_num: i32){
+    if toio_num == 1 {println!("1 peripheral connected");}
+    else {println!("{} peripherals connected", toio_num);}
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
@@ -393,10 +398,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             }
                         }
                     });
+
+                    toio_num += 1;
+                    print_toio_num(toio_num);
                 }
             }
             CentralEvent::DeviceDisconnected(bd_addr) => {
                 println!("DeviceDisconnected: {:?}", bd_addr);
+                toio_num -= 1;
+                print_toio_num(toio_num);
             }
             _ => {}
         }
