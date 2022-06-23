@@ -44,10 +44,12 @@ fn print_toio_num(toio_num: i32){
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
+    let mut toio_num = 0;
     //read command line arguments
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
 
+    //allow input (Not nessasary)
     let mut opts = Options::new();
     opts.optopt("p", "port", "set receiving port", "PORT_NUMBER");
     opts.optopt("r", "remote", "set remote port", "IP:PORT_NUMBER");
@@ -62,6 +64,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    //listen from port
     let port_number = matches.opt_str("p").unwrap_or("3334".to_string());
     let listening_address = format!("0.0.0.0:{}",port_number);
 
