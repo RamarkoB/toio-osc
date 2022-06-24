@@ -21,7 +21,6 @@ use uuid::Uuid;
 //#[macro_use]
 extern crate log;
 
-
 //characteristic of interest
 const TOIO_SERVICE_UUID: Uuid = Uuid::from_u128(0x10B20100_5B3B_4571_9508_CF3EFCD7BBAE);
 const POSITION_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20101_5B3B_4571_9508_CF3EFCD7BBAE);
@@ -30,21 +29,95 @@ const BUTTON_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20107_5B3B_4571_95
 const LIGHT_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20103_5B3B_4571_9508_CF3EFCD7BBAE);
 const MOTION_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20106_5B3B_4571_9508_CF3EFCD7BBAE);
 
+//The list of bluetooth adresses of the TOIO Bots currently known.
+//update to add bots
+const BLTADDR: [&str; 50] = 
+["BLE Address",
+"0",  // #1
+"66:35:33:35:30:64",  // #2
+"38:62:66:39:30:32",  // #3
+"62:62:64:38:37:64",  // #4
+"38:37:33:31:34:61",  // #5
+"66:64:65:63:66:37",  // #6
+"38:34:36:39:62:61",  // #7
+"61:34:38:64:37:39",  // #8
+"0",  // #9
+"0",  // #10
+"0",  // #11
+"38:30:65:36:35:34",  // #12
+"36:32:66:39:32:65",  // #13
+"0",  // #14
+"65:33:36:65:64:65",  // #15
+"0",  // #16
+"0",  // #17
+"65:62:64:38:62:63",  // #18
+"36:66:65:33:31:62",  // #19
+"36:64:34:39:62:66",  // #20
+"30:33:65:63:31:35",  // #21
+"35:65:30:63:37:37",  // #22
+"39:31:61:61:64:32",  // #23
+"61:36:32:61:38:64",  // #24
+"0",  // #25
+"35:39:61:61:64:31 ",  // #26
+"66:36:39:64:64:62",  // #27
+"64:39:35:32:32:61",  // #28
+"0",  // #29
+"0",  // #30
+"66:61:39:61:37:61",  // #31
+"61:66:65:35:37:33",  // #32
+"62:33:61:36:38:39",  // #33
+"63:31:37:39:33:36",  // #34
+"36:63:32:37:31:64 ",  // #35
+"0",  // #36
+"0",  // #37
+"0",  // #38
+"0",  // #39
+"0",  // #40
+"34:65:61:37:33:61",  // #41
+"63:37:39:32:66:64",  // #42
+"39:63:36:38:66:61",  // #43
+"65:33:33:64:35:31",  // #44
+"33:30:62:30:66:35 ",  // #45
+"66:62:37:62:63:63",  // #46
+"33:63:32:61:34:64",  // #47
+"0",  // #48
+"33:63:37:65:33:30",  // #49
+];
+
+//Updatate TOIO_NUM to the number of TOIO you are connecting to, and 
+//TOIO_ALLOWED to the IDs of the TOIO you want to connect to
+const TOIO_NUM: usize = 2;
+const TOIO_ALLOWED: [i32; TOIO_NUM] = 
+    [22, 23];
+
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
 }
 
-fn print_toio_num(toio_num: i32){
-    if toio_num == 1 {println!("1 peripheral connected");}
-    else {println!("{} peripherals connected", toio_num);}
+fn print_toio_connected(toio_connected: i32){
+    if toio_connected == 1 {println!("1 peripheral connected");}
+    else {println!("{} peripherals connected", toio_connected);}
+}
+
+fn return_toio_id(addr: BDAddr) -> i32 {
+    if !((&BLTADDR).into_iter().any(|v| v.to_string() == addr.to_string())) {
+        return 0;
+    }
+
+    let toio_id = BLTADDR
+    .iter()
+    .position(|&x| x == addr.to_string())
+    .unwrap();
+
+    return toio_id as i32;
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    let mut toio_num = 0;
+    let mut toio_connected = 0;
     //read command line arguments
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -171,11 +244,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         match event {
             CentralEvent::DeviceDiscovered(bd_addr) => {
                 let peripheral = central.peripheral(bd_addr).await.unwrap();
-
+                
                 let properties = peripheral.properties().await?;
                 let services = properties.unwrap().services;
 
                 if services.contains(&TOIO_SERVICE_UUID) {
+                    let toio_id = return_toio_id(bd_addr);
+                    println!("TOIO {} found", toio_id);
+
+                    if !(TOIO_ALLOWED.contains(&toio_id)) {
+                        continue;
+                    }
+
                     //we kave a toio cube!
                     let tx3 = tx.clone();
                     let is_connected = peripheral.is_connected().await?;
@@ -401,15 +481,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             }
                         }
                     });
+                    println!("TOIO {} connected", toio_id);
 
-                    toio_num += 1;
-                    print_toio_num(toio_num);
+                    toio_connected += 1;
+                    print_toio_connected(toio_connected);
                 }
             }
             CentralEvent::DeviceDisconnected(bd_addr) => {
-                println!("DeviceDisconnected: {:?}", bd_addr);
-                toio_num -= 1;
-                print_toio_num(toio_num);
+                let toio_id = return_toio_id(bd_addr);
+                println!("TOIO {} disconnected", toio_id);
+
+                toio_connected -= 1;
+                print_toio_connected(toio_connected);
             }
             _ => {}
         }
