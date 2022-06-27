@@ -22,7 +22,7 @@ use uuid::Uuid;
 //TOIO_ALLOWED to the IDs of the TOIO you want to connect to
 const TOIO_NUM: usize = 2;
 const TOIO_ALLOWED: [i32; TOIO_NUM] = 
-    [22, 23];
+    [22, 44];
 
 //#[macro_use]
 extern crate log;
@@ -34,11 +34,12 @@ const MOTOR_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20102_5B3B_4571_950
 const BUTTON_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20107_5B3B_4571_9508_CF3EFCD7BBAE);
 const LIGHT_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20103_5B3B_4571_9508_CF3EFCD7BBAE);
 const MOTION_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20106_5B3B_4571_9508_CF3EFCD7BBAE);
+const SOUND_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x10B20104_5B3B_4571_9508_CF3EFCD7BBAE);
 
 //The list of bluetooth adresses of the TOIO Bots currently known.
 //update to add bots
-const BLTADDR: [&str; 130] = 
-["BLE Address",
+const BLTADDR: [&str; 129] = 
+["BLE Address",  //TOIO Num
 "0",  // #1
 "66:35:33:35:30:64",  // #2
 "38:62:66:39:30:32",  // #3
@@ -165,9 +166,8 @@ const BLTADDR: [&str; 130] =
 "33:66:34:36:38:65",  // #124
 "36:32:32:33:66:38",  // #125
 "66:61:32:30:32:31",  // #126
-"0",  // #127
-"63:63:34:37:31:30",  // #128
-"64:31:36:34:63:62",  // #129
+"63:63:34:37:31:30",  // #127
+"64:31:36:34:63:62",  // #128
 ];
 
 fn print_usage(program: &str, opts: Options) {
@@ -330,7 +330,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                 if services.contains(&TOIO_SERVICE_UUID) {
                     let toio_id = return_toio_id(bd_addr);
-                    println!("TOIO {} found", toio_id);
+                    println!("TOIO {} found: {}", toio_id, bd_addr);
 
                     if !(TOIO_ALLOWED.contains(&toio_id)) {
                         continue;
@@ -436,6 +436,63 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                         p2.write(&characteristic, &cmd, WriteType::WithResponse)
                                             .await
                                             .unwrap();
+                                    } else {
+                                        //error
+                                    }
+                                }
+                                "/sound" => {
+                                    if message.args.len() == 3 {
+                                        //we should have 3 args
+                                        let mut marg = [0; 3];
+                                        for k in 0..3 {
+                                            if let OscType::Int(i) = message.args[k] {
+                                                marg[k] = i;
+                                            }
+                                        }
+                                        let characteristic = Characteristic {
+                                            uuid: SOUND_CHARACTERISTIC_UUID,
+                                            properties: CharPropFlags::WRITE_WITHOUT_RESPONSE,
+                                        };
+                                        let cmd = vec![
+                                            0x02,          //sound
+                                            marg[1] as u8, //sound effect ID
+                                            marg[2] as u8  //volume
+                                        ];
+                                        println!("{:?}", cmd);
+                                        p2.write(&characteristic, &cmd, WriteType::WithResponse)
+                                            .await
+                                            .unwrap();
+                                    } else {
+                                        //error
+                                    }
+                                }
+                                "/midi" => {
+                                    if message.args.len() == 4 {
+                                        //we should have 5 args
+                                        let mut marg = [0; 4];
+                                        for k in 0..4 {
+                                            if let OscType::Int(i) = message.args[k] {
+                                                marg[k] = i;
+                                            }
+                                        }
+                                        let characteristic = Characteristic {
+                                            uuid: SOUND_CHARACTERISTIC_UUID,
+                                            properties: CharPropFlags::WRITE_WITHOUT_RESPONSE,
+                                        };
+                                        let cmd = vec![
+                                            0x03,                 //light
+                                            0x01,                 //repetitions
+                                            0x01,                 //operations
+                                            marg[1].abs() as u8,  //duration
+                                            marg[2].abs() as u8,  //MIDI note number
+                                            marg[3].abs() as u8,  //volume
+                                        ];
+                                        println!("{:?}", cmd);
+                                        p2.write(&characteristic, &cmd, WriteType::WithResponse)
+                                            .await
+                                            .unwrap();
+                                    } else {
+                                        //error
                                     }
                                 }
                                 _ => {}

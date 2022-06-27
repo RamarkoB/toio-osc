@@ -1,0 +1,10 @@
+[package]
+name = "toio_experiment"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+toio = "0.1.4"
+tokio =  { version = "0.2.25", features = ["full"] }
