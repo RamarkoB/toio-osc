@@ -20,9 +20,9 @@ use uuid::Uuid;
 
 //Update TOIO_NUM to the number of TOIO you are connecting to, and 
 //TOIO_ALLOWED to the IDs of the TOIO you want to connect to
-const TOIO_NUM: usize = 2;
+const TOIO_NUM: usize = 1;
 const TOIO_ALLOWED: [i32; TOIO_NUM] = 
-    [22, 44];
+    [47];
 
 //#[macro_use]
 extern crate log;
@@ -495,6 +495,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                         //error
                                     }
                                 }
+                                "/motion" => {
+                                    let characteristic = Characteristic {
+                                        uuid: MOTION_CHARACTERISTIC_UUID,
+                                        properties: CharPropFlags::WRITE,
+                                    };
+                                    let cmd = vec![
+                                        0x81,
+                                    ];
+                                    println!("{:?}", cmd);
+                                    p2.write(&characteristic, &cmd, WriteType::WithResponse)
+                                        .await
+                                        .unwrap();
+                                }
                                 _ => {}
                             }
                         }
@@ -532,7 +545,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 "Subscribing to motion characteristic {:?}",
                                 characteristic.uuid
                             );
-                            //peripheral.subscribe(&characteristic).await?;
+                            peripheral.subscribe(&characteristic).await?;
                         }
                     }
 

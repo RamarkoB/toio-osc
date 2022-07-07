@@ -10,6 +10,11 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use std::{env, net::SocketAddr};
+use rosc::encoder;
+use rosc::{OscMessage, OscPacket, OscType};
+use tokio::{net::UdpSocket, sync::mpsc};
+
 pub const DOTS_PER_METER: f64 = 411.0 / 0.560;
 pub const CUBE_SIZE: f64 = 0.0318 * DOTS_PER_METER; // 31.8mm
 pub const HIT_LEN: f64 = 0.020 * DOTS_PER_METER; // 20mm
@@ -163,6 +168,34 @@ impl CubeManager {
     pub fn start(&mut self) {
         loop {
             let start = Instant::now();
+
+            let sock = UdpSocket::bind(("0.0.0.0:3334").parse::<SocketAddr>().unwrap());
+            //creating the channels
+            let (tx, mut rx) = mpsc::channel::<OscMessage>(1_000);
+            //saving one end to allow to receive OSC
+
+            //let id2 = id;
+            //let p2 = peripheral.clone();
+            async move {
+                while let Some(message) = rx.recv().await {
+                    //println!("Received {:?} for cube {}", message, id2);
+                    match message.addr.as_ref() {
+                        "/motor" => {
+                            println!("motor");
+                        }
+                        "/led" => {
+                            println!("led");
+                        }
+                        "/sound" => {
+                            println!("sound");
+                        }
+                        "/midi" => {
+                            println!("motor");
+                        }
+                        _ => {}
+                    }
+                }
+            };
 
             while let Ok(message) = self.from_bridge.try_recv() {
                 self.process_message(&message);

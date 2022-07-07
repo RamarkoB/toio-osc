@@ -333,6 +333,7 @@ impl App<'_> {
 fn main() {
     Builder::from_env(Env::default()).format_timestamp_millis().init();
     info!("Starting up!");
+    
 
     let gl_version = OpenGL::V3_3;
     let mut window: Window = WindowSettings::new("Cube Controller", [1000, 1000])
